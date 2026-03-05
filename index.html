@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERO DISPATCH | Robertson's Terminal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        :root {
+            --terminal-green: #00ff41;
+            --terminal-green-dim: #003b00;
+            --terminal-bg: #0d0208;
+            --terminal-glow: rgba(0, 255, 65, 0.2);
+            --danger-red: #ff003c;
+            --warning-yellow: #ffcc00;
+            --font-main: 'VT323', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--terminal-bg);
+            color: var(--terminal-green);
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        /* Scanline and CRT Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 100;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.27861; }
+            5% { opacity: 0.34769; }
+            10% { opacity: 0.23604; }
+            15% { opacity: 0.90626; }
+            20% { opacity: 0.18128; }
+            25% { opacity: 0.83891; }
+            30% { opacity: 0.65583; }
+            35% { opacity: 0.57807; }
+            40% { opacity: 0.26559; }
+            45% { opacity: 0.84693; }
+            50% { opacity: 0.96019; }
+            55% { opacity: 0.08523; }
+            60% { opacity: 0.71056; }
+            65% { opacity: 0.73437; }
+            70% { opacity: 0.28574; }
+            75% { opacity: 0.96387; }
+            80% { opacity: 0.11453; }
+            85% { opacity: 0.39905; }
+            90% { opacity: 0.35474; }
+            95% { opacity: 0.70425; }
+            100% { opacity: 0.35338; }
+        }
+
+        /* Header */
+        header {
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--terminal-green);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 255, 65, 0.05);
+            text-shadow: 0 0 5px var(--terminal-green);
+        }
+
+        .stats-item {
+            display: inline-block;
+            margin-left: 20px;
+        }
+
+        /* Layout */
+        main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .terminal-panel {
+            padding: 20px;
+            border-right: 1px solid var(--terminal-green);
+        }
+
+        #mission-list-panel {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        #mission-detail-panel {
+            flex: 1;
+            background: rgba(0, 255, 65, 0.02);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #hero-sidebar {
+            width: 300px;
+            overflow-y: auto;
+            border-right: none;
+        }
+
+        /* Typography & List Elements */
+        h2 {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed var(--terminal-green);
+            padding-bottom: 5px;
+        }
+
+        .mission-item {
+            padding: 10px;
+            border: 1px solid var(--terminal-green-dim);
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .mission-item:hover {
+            background: var(--terminal-green-dim);
+            color: var(--terminal-bg);
+        }
+
+        .mission-item.selected {
+            background: var(--terminal-green);
+            color: var(--terminal-bg);
+            box-shadow: 0 0 15px var(--terminal-green);
+        }
+
+        .mission-item.urgent {
+            border-color: var(--warning-yellow);
+            color: var(--warning-yellow);
+        }
+
+        .hero-card {
+            padding: 10px;
+            border: 1px solid var(--terminal-green-dim);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 255, 65, 0.03);
+        }
+
+        .hero-status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .status-ready { background-color: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green); }
+        .status-tired { background-color: var(--warning-yellow); box-shadow: 0 0 10px var(--warning-yellow); }
+        .status-unavailable { background-color: var(--danger-red); box-shadow: 0 0 10px var(--danger-red); }
+
+        .hero-info { flex: 1; }
+        .hero-action-btn {
+            padding: 5px 10px;
+            background: transparent;
+            border: 1px solid var(--terminal-green);
+            color: var(--terminal-green);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .hero-action-btn:hover:not(:disabled) {
+            background: var(--terminal-green);
+            color: var(--terminal-bg);
+        }
+        .hero-action-btn:disabled {
+            border-color: #333;
+            color: #333;
+            cursor: not-allowed;
+        }
+
+        /* Detail Area */
+        .detail-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            opacity: 0.5;
+            text-align: center;
+        }
+
+        .mission-detail-content {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .detail-row {
+            margin-bottom: 15px;
+        }
+
+        .deploy-section {
+            padding: 20px;
+            border-top: 1px solid var(--terminal-green);
+            text-align: center;
+        }
+
+        /* Footer Log */
+        footer {
+            height: 100px;
+            border-top: 2px solid var(--terminal-green);
+            padding: 10px 20px;
+            overflow-y: auto;
+            background: rgba(0, 255, 65, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .log-entry { margin-bottom: 3px; }
+        .log-entry::before { content: "> "; }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .typing-effect {
+            overflow: hidden;
+            white-space: nowrap;
+            animation: typing 2s steps(40, end);
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--terminal-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--terminal-green-dim); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--terminal-green); }
+
+        .on-mission-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .progress-bar-container {
+            width: 80%;
+            height: 10px;
+            border: 1px solid var(--terminal-green);
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--terminal-green);
+            width: 0%;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div id="system-time">00:00:00</div>
+        <div>
+            <span class="stats-item">STATUS: ONLINE</span>
+            <span class="stats-item">CRISES RESOLVIDAS: <span id="crises-resolved">0</span></span>
+            <span class="stats-item">REPUTAÇÃO: <span id="reputation-pts">100</span></span>
+        </div>
+    </header>
+
+    <main>
+        <section id="mission-list-panel" class="terminal-panel">
+            <h2>MISSÕES ATIVAS</h2>
+            <div id="mission-list">
+                <!-- Missões serão inseridas aqui -->
+            </div>
+        </section>
+
+        <section id="mission-detail-panel" class="terminal-panel">
+            <h2>DETALHES DA MISSÃO</h2>
+            <div id="mission-detail-container">
+                <div class="detail-placeholder">SELECIONE UMA MISSÃO PARA ANÁLISE...</div>
+            </div>
+        </section>
+
+        <aside id="hero-sidebar" class="terminal-panel">
+            <h2>STATUS DOS HERÓIS</h2>
+            <div id="hero-list">
+                <!-- Heróis serão inseridos aqui -->
+            </div>
+        </aside>
+    </main>
+
+    <footer id="event-log">
+        <div class="log-entry">Terminal Robertson v2.0 carregado...</div>
+        <div class="log-entry">Aguardando sinais de emergência...</div>
+    </footer>
+
+    <script>
+        // --- DATA & STATE ---
+        const HERO_STATUS = {
+            READY: 'ready',
+            TIRED: 'tired',
+            UNAVAILABLE: 'unavailable'
+        };
+
+        let state = {
+            crisesResolved: 0,
+            reputation: 100,
+            heroes: [
+                { id: 'h1', name: 'NEON SPECTER', baseSuccessRate: 85, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
+                { id: 'h2', name: 'CYBER TITAN', baseSuccessRate: 75, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
+                { id: 'h3', name: 'DATA GHOST', baseSuccessRate: 65, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
+                { id: 'h4', name: 'VECTOR', baseSuccessRate: 50, status: HERO_STATUS.READY, cooldown: 0, currentMission: null }
+            ],
+            missions: [],
+            selectedMissionId: null,
+            logs: []
+        };
+
+        const MISSION_TEMPLATES = [
+            { title: "Invasão no Setor 7", difficulty: 10, minDuration: 5, maxDuration: 10 },
+            { title: "Sequestro na Nuvem", difficulty: 25, minDuration: 8, maxDuration: 15 },
+            { title: "Ataque de Malware Bio", difficulty: 40, minDuration: 12, maxDuration: 20 },
+            { title: "Vazamento de Cripto-Núcleo", difficulty: 15, minDuration: 5, maxDuration: 12 },
+            { title: "Distúrbio na Orla Virtual", difficulty: 5, minDuration: 3, maxDuration: 7 }
+        ];
+
+        // --- CORE LOGIC ---
+
+        function createMission() {
+            const template = MISSION_TEMPLATES[Math.floor(Math.random() * MISSION_TEMPLATES.length)];
+            const id = 'm-' + Date.now();
+            const mission = {
+                id: id,
+                title: template.title,
+                difficulty: template.difficulty + Math.floor(Math.random() * 10),
+                duration: template.minDuration + Math.floor(Math.random() * (template.maxDuration - template.minDuration)),
+                urgency: 30 + Math.floor(Math.random() * 60), // seconds till expires
+                status: 'pending' // pending, ongoing, completed, failed
+            };
+            state.missions.push(mission);
+            addLog(`ALERTA: Nova emergência detectada: ${mission.title}`);
+            updateUI();
+        }
+
+        function deployHero(heroId, missionId) {
+            const hero = state.heroes.find(h => h.id === heroId);
+            const mission = state.missions.find(m => m.id === missionId);
+
+            if (!hero || !mission || hero.status === HERO_STATUS.UNAVAILABLE || mission.status !== 'pending') return;
+
+            hero.currentMission = missionId;
+            mission.status = 'ongoing';
+            mission.startTime = Date.now();
+            
+            addLog(`HERÓI ${hero.name} DESPACHADO PARA: ${mission.title}`);
+            updateUI();
+
+            setTimeout(() => {
+                resolveMission(heroId, missionId);
+            }, mission.duration * 1000);
+        }
+
+        function resolveMission(heroId, missionId) {
+            const hero = state.heroes.find(h => h.id === heroId);
+            const mission = state.missions.find(m => m.id === missionId);
+            
+            if (!hero || !mission) return;
+
+            const modifier = hero.status === HERO_STATUS.READY ? 1.0 : (hero.status === HERO_STATUS.TIRED ? 0.75 : 0);
+            const successChance = (hero.baseSuccessRate * modifier) - mission.difficulty;
+            const roll = Math.random() * 100;
+
+            if (roll < successChance) {
+                // SUCCESS
+                mission.status = 'completed';
+                state.crisesResolved++;
+                state.reputation += 10;
+                addLog(`SUCESSO: ${hero.name} resolveu ${mission.title}.`);
+            } else {
+                // FAILURE
+                mission.status = 'failed';
+                state.reputation -= 5;
+                
+                // Hero status decay
+                if (hero.status === HERO_STATUS.READY) {
+                    hero.status = HERO_STATUS.TIRED;
+                    addLog(`FALHA: ${hero.name} falhou em ${mission.title}. STATUS: CANSADO.`);
+                } else if (hero.status === HERO_STATUS.TIRED) {
+                    hero.status = HERO_STATUS.UNAVAILABLE;
+                    hero.cooldown = 3; // Waves/Turns or simple duration
+                    addLog(`FALHA CRÍTICA: ${hero.name} falhou. STATUS: INDISPONÍVEL.`);
+                }
+            }
+
+            hero.currentMission = null;
+            // Remove mission from active list
+            state.missions = state.missions.filter(m => m.id !== missionId);
+            if (state.selectedMissionId === missionId) state.selectedMissionId = null;
+
+            updateUI();
+        }
+
+        // --- UI RENDERERS ---
+
+        function addLog(text) {
+            state.logs.push(text);
+            if (state.logs.length > 50) state.logs.shift();
+            const foot = document.getElementById('event-log');
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerText = text;
+            foot.appendChild(div);
+            foot.scrollTop = foot.scrollHeight;
+        }
+
+        function updateUI() {
+            renderMissions();
+            renderHeroes();
+            renderDetails();
+            document.getElementById('crises-resolved').innerText = state.crisesResolved;
+            document.getElementById('reputation-pts').innerText = state.reputation;
+        }
+
+        function renderMissions() {
+            const list = document.getElementById('mission-list');
+            list.innerHTML = '';
+            state.missions.forEach(m => {
+                if (m.status === 'pending' || m.status === 'ongoing') {
+                    const div = document.createElement('div');
+                    div.className = `mission-item ${m.urgency < 15 ? 'urgent' : ''} ${state.selectedMissionId === m.id ? 'selected' : ''}`;
+                    div.innerHTML = `
+                        <div style="display:flex; justify-content:space-between">
+                            <span>${m.title}</span>
+                            <span>DIFF: ${m.difficulty}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; margin-top: 5px;">
+                            ${m.status === 'ongoing' ? 'STATUS: EM CURSO...' : `EXPIRA EM: ${m.urgency}s`}
+                        </div>
+                    `;
+                    div.onclick = () => {
+                        state.selectedMissionId = m.id;
+                        updateUI();
+                    };
+                    list.appendChild(div);
+                }
+            });
+        }
+
+        function renderHeroes() {
+            const list = document.getElementById('hero-list');
+            list.innerHTML = '';
+            state.heroes.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'hero-card';
+                
+                let statusClass = 'status-ready';
+                if (h.status === HERO_STATUS.TIRED) statusClass = 'status-tired';
+                if (h.status === HERO_STATUS.UNAVAILABLE) statusClass = 'status-unavailable';
+                if (h.currentMission) statusClass = 'status-unavailable'; // Busy
+
+                div.innerHTML = `
+                    <div class="hero-status-indicator ${statusClass}"></div>
+                    <div class="hero-info">
+                        <div>${h.name}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">SUCESSO BASE: ${h.baseSuccessRate}%</div>
+                    </div>
+                    ${h.status === HERO_STATUS.UNAVAILABLE && h.cooldown > 0 ? `<div style="font-size:0.8rem">RECUP: ${h.cooldown}s</div>` : ''}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderDetails() {
+            const container = document.getElementById('mission-detail-container');
+            const mission = state.missions.find(m => m.id === state.selectedMissionId);
+
+            if (!mission) {
+                container.innerHTML = '<div class="detail-placeholder">SELECIONE UMA MISSÃO PARA ANÁLISE...</div>';
+                return;
+            }
+
+            let deployButtons = '';
+            if (mission.status === 'pending') {
+                state.heroes.forEach(h => {
+                    const isBusy = h.currentMission !== null;
+                    const isUnavailable = h.status === HERO_STATUS.UNAVAILABLE;
+                    const modifier = h.status === HERO_STATUS.READY ? 1.0 : (h.status === HERO_STATUS.TIRED ? 0.75 : 0);
+                    const chance = Math.max(0, (h.baseSuccessRate * modifier) - mission.difficulty);
+                    
+                    deployButtons += `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                            <span>${h.name} (${Math.round(chance)}%)</span>
+                            <button class="hero-action-btn" 
+                                ${isBusy || isUnavailable ? 'disabled' : ''} 
+                                onclick="deployHero('${h.id}', '${mission.id}')">
+                                DESPACHAR
+                            </button>
+                        </div>
+                    `;
+                });
+            } else if (mission.status === 'ongoing') {
+                const hero = state.heroes.find(h => h.currentMission === mission.id);
+                deployButtons = `<div style="text-align:center; padding: 20px;">HERÓI ${hero ? hero.name : '??'} EM OPERAÇÃO...</div>`;
+            }
+
+            container.innerHTML = `
+                <div class="mission-detail-content">
+                    <div class="detail-row">
+                        <h3 style="color: var(--terminal-green);">${mission.title}</h3>
+                        <p style="margin-top: 5px; font-size: 0.9rem;">DIFICULDADE DO SISTEMA: ${mission.difficulty}</p>
+                        <p style="font-size: 0.9rem;">DURAÇÃO ESTIMADA: ${mission.duration}s</p>
+                    </div>
+                    <hr style="border: none; border-top: 1px dashed var(--terminal-green); margin: 15px 0;">
+                    <div class="deploy-section">
+                        <h4>SELECIONE HERÓI PARA DESLOCAMENTO:</h4>
+                        <div style="margin-top: 15px; text-align: left;">
+                            ${deployButtons}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- GAME LOOP ---
+
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
+                            now.getMinutes().toString().padStart(2, '0') + ":" + 
+                            now.getSeconds().toString().padStart(2, '0');
+            document.getElementById('system-time').innerText = timeStr;
+        }
+
+        setInterval(() => {
+            updateClock();
+            
+            // Mission expiration and spawning
+            state.missions.forEach(m => {
+                if (m.status === 'pending') {
+                    m.urgency--;
+                    if (m.urgency <= 0) {
+                        m.status = 'failed';
+                        state.reputation -= 10;
+                        addLog(`MISSÃO EXPIRADA: ${m.title}. Reputação reduzida.`);
+                    }
+                }
+            });
+
+            // Cleanup expired
+            state.missions = state.missions.filter(m => m.status !== 'failed' && m.status !== 'completed');
+            
+            // Random spawn
+            if (state.missions.filter(m => m.status === 'pending').length < 4 && Math.random() < 0.05) {
+                createMission();
+            }
+
+            // Hero Recovery
+            state.heroes.forEach(h => {
+                if (h.status === HERO_STATUS.UNAVAILABLE && !h.currentMission) {
+                    if (h.cooldown > 0) {
+                        h.cooldown--;
+                    } else {
+                        h.status = HERO_STATUS.TIRED;
+                        addLog(`HERÓI ${h.name} RETORNOU AO STATUS: CANSADO.`);
+                    }
+                }
+            });
+
+            updateUI();
+        }, 1000);
+
+        // Initial setup
+        createMission();
+        createMission();
+        updateUI();
+
+    </script>
+</body>
+</html>
