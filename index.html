@@ -1,20 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERO DISPATCH | Robertson's Terminal</title>
+    <title>HERO DISPATCH | Control Center</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
         :root {
-            --terminal-green: #00ff41;
-            --terminal-green-dim: #003b00;
-            --terminal-bg: #0d0208;
-            --terminal-glow: rgba(0, 255, 65, 0.2);
-            --danger-red: #ff003c;
-            --warning-yellow: #ffcc00;
-            --font-main: 'VT323', monospace;
+            --bg-dark: #0d1212;
+            --panel-beige: #f0e6d2;
+            --text-dark: #2c2c2c;
+            --accent-blue: #5c4dff;
+            --accent-orange: #ff8c00;
+            --accent-green: #00b894;
+            --accent-red: #ff4757;
+            --border-color: #c8b9a0;
+            --crt-glow: rgba(100, 255, 255, 0.05);
         }
 
         * {
@@ -24,18 +28,17 @@
         }
 
         body {
-            background-color: var(--terminal-bg);
-            color: var(--terminal-green);
-            font-family: var(--font-main);
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            font-family: 'Outfit', sans-serif;
             height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            font-size: 1.2rem;
-            text-transform: uppercase;
+            position: relative;
         }
 
-        /* Scanline and CRT Effect */
+        /* CRT SCANLINE EFFECT */
         body::before {
             content: " ";
             display: block;
@@ -44,576 +47,862 @@
             left: 0;
             bottom: 0;
             right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 100;
-            background-size: 100% 2px, 3px 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 1000;
+            background-size: 100% 3px, 3px 100%;
             pointer-events: none;
         }
 
-        body::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: rgba(18, 16, 16, 0.1);
-            opacity: 0;
-            z-index: 100;
-            pointer-events: none;
-            animation: flicker 0.15s infinite;
-        }
-
-        @keyframes flicker {
-            0% { opacity: 0.27861; }
-            5% { opacity: 0.34769; }
-            10% { opacity: 0.23604; }
-            15% { opacity: 0.90626; }
-            20% { opacity: 0.18128; }
-            25% { opacity: 0.83891; }
-            30% { opacity: 0.65583; }
-            35% { opacity: 0.57807; }
-            40% { opacity: 0.26559; }
-            45% { opacity: 0.84693; }
-            50% { opacity: 0.96019; }
-            55% { opacity: 0.08523; }
-            60% { opacity: 0.71056; }
-            65% { opacity: 0.73437; }
-            70% { opacity: 0.28574; }
-            75% { opacity: 0.96387; }
-            80% { opacity: 0.11453; }
-            85% { opacity: 0.39905; }
-            90% { opacity: 0.35474; }
-            95% { opacity: 0.70425; }
-            100% { opacity: 0.35338; }
-        }
-
-        /* Header */
+        /* HEADER BOX */
         header {
-            padding: 10px 20px;
-            border-bottom: 2px solid var(--terminal-green);
+            background-color: #1a1f1f;
+            color: #00d2d3;
+            padding: 8px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 255, 65, 0.05);
-            text-shadow: 0 0 5px var(--terminal-green);
+            border-bottom: 2px solid #00d2d3;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
         }
 
         .stats-item {
-            display: inline-block;
-            margin-left: 20px;
+            margin-left: 24px;
+            font-weight: bold;
         }
 
-        /* Layout */
+        /* MAIN CONTENT AREA */
         main {
-            display: flex;
+            display: grid;
+            grid-template-columns: 280px 1fr;
             flex: 1;
-            overflow: hidden;
+            padding: 15px;
+            gap: 15px;
+            background: radial-gradient(circle at center, #1a2323 0%, #0d1212 100%);
         }
 
-        .terminal-panel {
-            padding: 20px;
-            border-right: 1px solid var(--terminal-green);
-        }
-
-        #mission-list-panel {
-            flex: 1;
+        /* MISSION LIST SIDEBAR */
+        #mission-sidebar {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 210, 211, 0.3);
+            border-radius: 4px;
             overflow-y: auto;
+            color: #00d2d3;
+            padding: 10px;
         }
 
-        #mission-detail-panel {
-            flex: 1;
-            background: rgba(0, 255, 65, 0.02);
+        .sidebar-header {
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 210, 211, 0.3);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mission-tab {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(0, 210, 211, 0.05);
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mission-tab:hover {
+            background: rgba(0, 210, 211, 0.15);
+        }
+
+        .mission-tab.active {
+            background: rgba(0, 210, 211, 0.25);
+            border-left: 3px solid #00d2d3;
+        }
+
+        .mission-tab.urgent {
+            border-left: 3px solid var(--accent-orange);
+            color: var(--accent-orange);
+        }
+
+        .mission-tab .m-title {
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .mission-tab .m-timer {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* DISPATCH CENTER (MAIN PANEL) */
+        #dispatch-interface {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            gap: 15px;
+        }
+
+        .dispatch-panels {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            gap: 15px;
+        }
+
+        .glass-panel {
+            background-color: var(--panel-beige);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
-        #hero-sidebar {
-            width: 300px;
-            overflow-y: auto;
-            border-right: none;
+        .panel-header {
+            background-color: var(--border-color);
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* Typography & List Elements */
-        h2 {
-            margin-bottom: 15px;
-            border-bottom: 1px dashed var(--terminal-green);
+        .panel-content {
+            padding: 20px;
+            flex: 1;
+            position: relative;
+        }
+
+        /* AUDIO LOG COLUMN */
+        .audio-log-box {
+            background: #e8ded0;
+            border: 1px inset rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            height: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: #444;
+        }
+
+        .civilian-tag {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #888;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
             padding-bottom: 5px;
         }
 
-        .mission-item {
-            padding: 10px;
-            border: 1px solid var(--terminal-green-dim);
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .mission-item:hover {
-            background: var(--terminal-green-dim);
-            color: var(--terminal-bg);
-        }
-
-        .mission-item.selected {
-            background: var(--terminal-green);
-            color: var(--terminal-bg);
-            box-shadow: 0 0 15px var(--terminal-green);
-        }
-
-        .mission-item.urgent {
-            border-color: var(--warning-yellow);
-            color: var(--warning-yellow);
-        }
-
-        .hero-card {
-            padding: 10px;
-            border: 1px solid var(--terminal-green-dim);
-            margin-bottom: 10px;
+        /* RADAR CHART COLUMN */
+        #radar-container {
             display: flex;
+            justify-content: center;
             align-items: center;
-            justify-content: space-between;
-            background: rgba(0, 255, 65, 0.03);
+            height: 100%;
         }
 
-        .hero-status-indicator {
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            display: inline-block;
+        .radar-svg {
+            width: 100%;
+            height: 100%;
+            max-width: 250px;
+            max-height: 250px;
+        }
+
+        /* REQUIREMENTS COLUMN */
+        .requirement-list {
+            list-style: none;
+        }
+
+        .req-item {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .req-item::before {
+            content: ">";
             margin-right: 10px;
+            font-weight: bold;
+            color: var(--accent-orange);
         }
 
-        .status-ready { background-color: var(--terminal-green); box-shadow: 0 0 10px var(--terminal-green); }
-        .status-tired { background-color: var(--warning-yellow); box-shadow: 0 0 10px var(--warning-yellow); }
-        .status-unavailable { background-color: var(--danger-red); box-shadow: 0 0 10px var(--danger-red); }
+        .req-keyword {
+            font-weight: bold;
+            color: var(--accent-orange);
+        }
 
-        .hero-info { flex: 1; }
-        .hero-action-btn {
-            padding: 5px 10px;
-            background: transparent;
-            border: 1px solid var(--terminal-green);
-            color: var(--terminal-green);
+        /* HERO SELECTION BAR */
+        #hero-selection-bar {
+            background-color: rgba(26, 31, 31, 0.8);
+            border: 1px solid rgba(0, 210, 211, 0.3);
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            overflow-x: auto;
+            justify-content: center;
+        }
+
+        .hero-slot {
+            width: 120px;
+            flex-shrink: 0;
+            background: #2c3e50;
+            border: 1px solid #34495e;
+            position: relative;
             cursor: pointer;
-            font-family: inherit;
+            transition: transform 0.2s, border-color 0.2s;
         }
-        .hero-action-btn:hover:not(:disabled) {
-            background: var(--terminal-green);
-            color: var(--terminal-bg);
+
+        .hero-slot:hover {
+            transform: translateY(-5px);
+            border-color: #00d2d3;
         }
-        .hero-action-btn:disabled {
-            border-color: #333;
-            color: #333;
+
+        .hero-slot.selected {
+            border: 2px solid #00d2d3;
+            box-shadow: 0 0 10px #00d2d3;
+        }
+
+        .hero-slot.busy {
+            filter: grayscale(0.8);
+            opacity: 0.7;
             cursor: not-allowed;
         }
 
-        /* Detail Area */
-        .detail-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            opacity: 0.5;
-            text-align: center;
-        }
-
-        .mission-detail-content {
-            padding: 20px;
-            flex: 1;
-        }
-
-        .detail-row {
-            margin-bottom: 15px;
-        }
-
-        .deploy-section {
-            padding: 20px;
-            border-top: 1px solid var(--terminal-green);
-            text-align: center;
-        }
-
-        /* Footer Log */
-        footer {
+        .hero-img {
+            width: 100%;
             height: 100px;
-            border-top: 2px solid var(--terminal-green);
-            padding: 10px 20px;
-            overflow-y: auto;
-            background: rgba(0, 255, 65, 0.05);
-            font-size: 0.9rem;
+            object-fit: cover;
+            background: #000;
         }
 
-        .log-entry { margin-bottom: 3px; }
-        .log-entry::before { content: "> "; }
-
-        /* Animations */
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .typing-effect {
-            overflow: hidden;
-            white-space: nowrap;
-            animation: typing 2s steps(40, end);
-        }
-
-        @keyframes typing {
-            from { width: 0 }
-            to { width: 100% }
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--terminal-bg); }
-        ::-webkit-scrollbar-thumb { background: var(--terminal-green-dim); }
-        ::-webkit-scrollbar-thumb:hover { background: var(--terminal-green); }
-
-        .on-mission-overlay {
+        .hero-status-tag {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 0.65rem;
+            text-align: center;
+            padding: 2px 0;
+            font-weight: bold;
+        }
+
+        .hero-name-tag {
+            background: #f0e6d2;
+            color: #2c2c2c;
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 3px 0;
+            font-weight: bold;
+        }
+
+        /* DISPATCH BUTTON BOX */
+        .action-area {
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            padding: 10px 20px;
+            background: rgba(240, 230, 210, 0.05);
+            border: 1px solid rgba(0, 210, 211, 0.2);
+            border-radius: 4px;
+        }
+
+        .btn {
+            padding: 10px 30px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            border-radius: 2px;
+            transition: all 0.2s;
+        }
+
+        .btn-dispatch {
+            background-color: var(--accent-orange);
+            color: white;
+            box-shadow: 0 4px 0 #b36200;
+        }
+
+        .btn-dispatch:hover:not(:disabled) {
+            background-color: #ff9f1a;
+            transform: translateY(-1px);
+        }
+
+        .btn-dispatch:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #b36200;
+        }
+
+        .btn-dispatch:disabled {
+            background-color: #555;
+            box-shadow: 0 4px 0 #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* OVERLAYS (SUCCESS/FAILURE) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: none;
             justify-content: center;
-            z-index: 10;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            color: white;
+            animation: fadeIn 0.3s forwards;
         }
 
-        .progress-bar-container {
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .result-box {
             width: 80%;
-            height: 10px;
-            border: 1px solid var(--terminal-green);
-            position: relative;
+            max-width: 600px;
+            padding: 40px;
+            border: 2px solid white;
+            background: #111;
         }
 
-        .progress-bar-fill {
-            height: 100%;
-            background: var(--terminal-green);
-            width: 0%;
+        .result-box.success {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
         }
 
+        .result-box.failure {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .result-title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: 5px;
+        }
+
+        .result-details {
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            color: #ccc;
+        }
+
+        /* DAY TRANSITION */
+        #day-transition {
+            background: #000;
+            display: none;
+        }
+
+        .day-text {
+            font-size: 5rem;
+            color: #00d2d3;
+            font-weight: 900;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* RESPONSIVE & UTILS */
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <header>
-        <div id="system-time">00:00:00</div>
-        <div>
-            <span class="stats-item">STATUS: ONLINE</span>
-            <span class="stats-item">CRISES RESOLVIDAS: <span id="crises-resolved">0</span></span>
-            <span class="stats-item">REPUTAÇÃO: <span id="reputation-pts">100</span></span>
+        <div id="ui-day">DIA 01</div>
+        <div id="ui-clock">21:07:13</div>
+        <div style="display: flex;">
+            <div class="stats-item">FAMA: <span id="ui-rep">100</span></div>
+            <div class="stats-item">ORÇAMENTO: <span id="ui-money">$2500</span></div>
+            <div class="stats-item">STATUS: ESTÁVEL</div>
         </div>
     </header>
 
     <main>
-        <section id="mission-list-panel" class="terminal-panel">
-            <h2>MISSÕES ATIVAS</h2>
-            <div id="mission-list">
-                <!-- Missões serão inseridas aqui -->
+        <aside id="mission-sidebar">
+            <div class="sidebar-header">
+                <span>CHAMADOS ATIVOS</span>
+                <span id="ui-mission-count">0</span>
             </div>
-        </section>
-
-        <section id="mission-detail-panel" class="terminal-panel">
-            <h2>DETALHES DA MISSÃO</h2>
-            <div id="mission-detail-container">
-                <div class="detail-placeholder">SELECIONE UMA MISSÃO PARA ANÁLISE...</div>
-            </div>
-        </section>
-
-        <aside id="hero-sidebar" class="terminal-panel">
-            <h2>STATUS DOS HERÓIS</h2>
-            <div id="hero-list">
-                <!-- Heróis serão inseridos aqui -->
+            <div id="mission-tabs-container">
+                <!-- Mission Tabs will be injected here -->
             </div>
         </aside>
-    </main>
 
-    <footer id="event-log">
-        <div class="log-entry">Terminal Robertson v2.0 carregado...</div>
-        <div class="log-entry">Aguardando sinais de emergência...</div>
-    </footer>
-
-    <script>
-        // --- DATA & STATE ---
-        const HERO_STATUS = {
-            READY: 'ready',
-            TIRED: 'tired',
-            UNAVAILABLE: 'unavailable'
-        };
-
-        let state = {
-            crisesResolved: 0,
-            reputation: 100,
-            heroes: [
-                { id: 'h1', name: 'NEON SPECTER', baseSuccessRate: 85, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
-                { id: 'h2', name: 'CYBER TITAN', baseSuccessRate: 75, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
-                { id: 'h3', name: 'DATA GHOST', baseSuccessRate: 65, status: HERO_STATUS.READY, cooldown: 0, currentMission: null },
-                { id: 'h4', name: 'VECTOR', baseSuccessRate: 50, status: HERO_STATUS.READY, cooldown: 0, currentMission: null }
-            ],
-            missions: [],
-            selectedMissionId: null,
-            logs: []
-        };
-
-        const MISSION_TEMPLATES = [
-            { title: "Invasão no Setor 7", difficulty: 10, minDuration: 5, maxDuration: 10 },
-            { title: "Sequestro na Nuvem", difficulty: 25, minDuration: 8, maxDuration: 15 },
-            { title: "Ataque de Malware Bio", difficulty: 40, minDuration: 12, maxDuration: 20 },
-            { title: "Vazamento de Cripto-Núcleo", difficulty: 15, minDuration: 5, maxDuration: 12 },
-            { title: "Distúrbio na Orla Virtual", difficulty: 5, minDuration: 3, maxDuration: 7 }
-        ];
-
-        // --- CORE LOGIC ---
-
-        function createMission() {
-            const template = MISSION_TEMPLATES[Math.floor(Math.random() * MISSION_TEMPLATES.length)];
-            const id = 'm-' + Date.now();
-            const mission = {
-                id: id,
-                title: template.title,
-                difficulty: template.difficulty + Math.floor(Math.random() * 10),
-                duration: template.minDuration + Math.floor(Math.random() * (template.maxDuration - template.minDuration)),
-                urgency: 30 + Math.floor(Math.random() * 60), // seconds till expires
-                status: 'pending' // pending, ongoing, completed, failed
-            };
-            state.missions.push(mission);
-            addLog(`ALERTA: Nova emergência detectada: ${mission.title}`);
-            updateUI();
-        }
-
-        function deployHero(heroId, missionId) {
-            const hero = state.heroes.find(h => h.id === heroId);
-            const mission = state.missions.find(m => m.id === missionId);
-
-            if (!hero || !mission || hero.status === HERO_STATUS.UNAVAILABLE || mission.status !== 'pending') return;
-
-            hero.currentMission = missionId;
-            mission.status = 'ongoing';
-            mission.startTime = Date.now();
-            
-            addLog(`HERÓI ${hero.name} DESPACHADO PARA: ${mission.title}`);
-            updateUI();
-
-            setTimeout(() => {
-                resolveMission(heroId, missionId);
-            }, mission.duration * 1000);
-        }
-
-        function resolveMission(heroId, missionId) {
-            const hero = state.heroes.find(h => h.id === heroId);
-            const mission = state.missions.find(m => m.id === missionId);
-            
-            if (!hero || !mission) return;
-
-            const modifier = hero.status === HERO_STATUS.READY ? 1.0 : (hero.status === HERO_STATUS.TIRED ? 0.75 : 0);
-            const successChance = (hero.baseSuccessRate * modifier) - mission.difficulty;
-            const roll = Math.random() * 100;
-
-            if (roll < successChance) {
-                // SUCCESS
-                mission.status = 'completed';
-                state.crisesResolved++;
-                state.reputation += 10;
-                addLog(`SUCESSO: ${hero.name} resolveu ${mission.title}.`);
-            } else {
-                // FAILURE
-                mission.status = 'failed';
-                state.reputation -= 5;
-                
-                // Hero status decay
-                if (hero.status === HERO_STATUS.READY) {
-                    hero.status = HERO_STATUS.TIRED;
-                    addLog(`FALHA: ${hero.name} falhou em ${mission.title}. STATUS: CANSADO.`);
-                } else if (hero.status === HERO_STATUS.TIRED) {
-                    hero.status = HERO_STATUS.UNAVAILABLE;
-                    hero.cooldown = 3; // Waves/Turns or simple duration
-                    addLog(`FALHA CRÍTICA: ${hero.name} falhou. STATUS: INDISPONÍVEL.`);
-                }
-            }
-
-            hero.currentMission = null;
-            // Remove mission from active list
-            state.missions = state.missions.filter(m => m.id !== missionId);
-            if (state.selectedMissionId === missionId) state.selectedMissionId = null;
-
-            updateUI();
-        }
-
-        // --- UI RENDERERS ---
-
-        function addLog(text) {
-            state.logs.push(text);
-            if (state.logs.length > 50) state.logs.shift();
-            const foot = document.getElementById('event-log');
-            const div = document.createElement('div');
-            div.className = 'log-entry';
-            div.innerText = text;
-            foot.appendChild(div);
-            foot.scrollTop = foot.scrollHeight;
-        }
-
-        function updateUI() {
-            renderMissions();
-            renderHeroes();
-            renderDetails();
-            document.getElementById('crises-resolved').innerText = state.crisesResolved;
-            document.getElementById('reputation-pts').innerText = state.reputation;
-        }
-
-        function renderMissions() {
-            const list = document.getElementById('mission-list');
-            list.innerHTML = '';
-            state.missions.forEach(m => {
-                if (m.status === 'pending' || m.status === 'ongoing') {
-                    const div = document.createElement('div');
-                    div.className = `mission-item ${m.urgency < 15 ? 'urgent' : ''} ${state.selectedMissionId === m.id ? 'selected' : ''}`;
-                    div.innerHTML = `
-                        <div style="display:flex; justify-content:space-between">
-                            <span>${m.title}</span>
-                            <span>DIFF: ${m.difficulty}</span>
-                        </div>
-                        <div style="font-size: 0.8rem; margin-top: 5px;">
-                            ${m.status === 'ongoing' ? 'STATUS: EM CURSO...' : `EXPIRA EM: ${m.urgency}s`}
-                        </div>
-                    `;
-                    div.onclick = () => {
-                        state.selectedMissionId = m.id;
-                        updateUI();
-                    };
-                    list.appendChild(div);
-                }
-            });
-        }
-
-        function renderHeroes() {
-            const list = document.getElementById('hero-list');
-            list.innerHTML = '';
-            state.heroes.forEach(h => {
-                const div = document.createElement('div');
-                div.className = 'hero-card';
-                
-                let statusClass = 'status-ready';
-                if (h.status === HERO_STATUS.TIRED) statusClass = 'status-tired';
-                if (h.status === HERO_STATUS.UNAVAILABLE) statusClass = 'status-unavailable';
-                if (h.currentMission) statusClass = 'status-unavailable'; // Busy
-
-                div.innerHTML = `
-                    <div class="hero-status-indicator ${statusClass}"></div>
-                    <div class="hero-info">
-                        <div>${h.name}</div>
-                        <div style="font-size: 0.8rem; opacity: 0.7;">SUCESSO BASE: ${h.baseSuccessRate}%</div>
+        <section id="dispatch-interface">
+            <div class="dispatch-panels">
+                <!-- Panel 1: Audio Log -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <span>AUDIO LOG</span>
+                        <span>LIVE_FEED.mp3</span>
                     </div>
-                    ${h.status === HERO_STATUS.UNAVAILABLE && h.cooldown > 0 ? `<div style="font-size:0.8rem">RECUP: ${h.cooldown}s</div>` : ''}
-                `;
-                list.appendChild(div);
-            });
-        }
-
-        function renderDetails() {
-            const container = document.getElementById('mission-detail-container');
-            const mission = state.missions.find(m => m.id === state.selectedMissionId);
-
-            if (!mission) {
-                container.innerHTML = '<div class="detail-placeholder">SELECIONE UMA MISSÃO PARA ANÁLISE...</div>';
-                return;
-            }
-
-            let deployButtons = '';
-            if (mission.status === 'pending') {
-                state.heroes.forEach(h => {
-                    const isBusy = h.currentMission !== null;
-                    const isUnavailable = h.status === HERO_STATUS.UNAVAILABLE;
-                    const modifier = h.status === HERO_STATUS.READY ? 1.0 : (h.status === HERO_STATUS.TIRED ? 0.75 : 0);
-                    const chance = Math.max(0, (h.baseSuccessRate * modifier) - mission.difficulty);
-                    
-                    deployButtons += `
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                            <span>${h.name} (${Math.round(chance)}%)</span>
-                            <button class="hero-action-btn" 
-                                ${isBusy || isUnavailable ? 'disabled' : ''} 
-                                onclick="deployHero('${h.id}', '${mission.id}')">
-                                DESPACHAR
-                            </button>
-                        </div>
-                    `;
-                });
-            } else if (mission.status === 'ongoing') {
-                const hero = state.heroes.find(h => h.currentMission === mission.id);
-                deployButtons = `<div style="text-align:center; padding: 20px;">HERÓI ${hero ? hero.name : '??'} EM OPERAÇÃO...</div>`;
-            }
-
-            container.innerHTML = `
-                <div class="mission-detail-content">
-                    <div class="detail-row">
-                        <h3 style="color: var(--terminal-green);">${mission.title}</h3>
-                        <p style="margin-top: 5px; font-size: 0.9rem;">DIFICULDADE DO SISTEMA: ${mission.difficulty}</p>
-                        <p style="font-size: 0.9rem;">DURAÇÃO ESTIMADA: ${mission.duration}s</p>
-                    </div>
-                    <hr style="border: none; border-top: 1px dashed var(--terminal-green); margin: 15px 0;">
-                    <div class="deploy-section">
-                        <h4>SELECIONE HERÓI PARA DESLOCAMENTO:</h4>
-                        <div style="margin-top: 15px; text-align: left;">
-                            ${deployButtons}
+                    <div class="panel-content">
+                        <div class="audio-log-box">
+                            <div class="civilian-tag">CIVIL / OCUPAÇÃO</div>
+                            <p id="mission-audio-text">"Aguardando sinal para análise de dados..."</p>
                         </div>
                     </div>
                 </div>
-            `;
+
+                <!-- Panel 2: Radar Stats -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <span id="mission-type-label">ANÁLISE DE RISCO</span>
+                        <span>SHIFT VALUES [X]</span>
+                    </div>
+                    <div class="panel-content" id="radar-container">
+                        <svg class="radar-svg" viewBox="0 0 100 100">
+                            <!-- Background Circles -->
+                            <circle cx="50" cy="50" r="10" fill="none" stroke="#ddd" stroke-width="0.5" />
+                            <circle cx="50" cy="50" r="20" fill="none" stroke="#ddd" stroke-width="0.5" />
+                            <circle cx="50" cy="50" r="30" fill="none" stroke="#ddd" stroke-width="0.5" />
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#ddd" stroke-width="0.5" />
+                            <!-- Axes -->
+                            <line x1="50" y1="50" x2="50" y2="10" stroke="#ddd" stroke-width="0.5" />
+                            <line x1="50" y1="50" x2="88" y2="38" stroke="#ddd" stroke-width="0.5" />
+                            <line x1="50" y1="50" x2="74" y2="82" stroke="#ddd" stroke-width="0.5" />
+                            <line x1="50" y1="50" x2="26" y2="82" stroke="#ddd" stroke-width="0.5" />
+                            <line x1="50" y1="50" x2="12" y2="38" stroke="#ddd" stroke-width="0.5" />
+                            <!-- Labels -->
+                            <text x="50" y="8" font-size="3" text-anchor="middle">COMBATE</text>
+                            <text x="90" y="38" font-size="3" text-anchor="start">INTEL</text>
+                            <text x="76" y="86" font-size="3" text-anchor="start">RESGATE</text>
+                            <text x="24" y="86" font-size="3" text-anchor="end">VELOCIDADE</text>
+                            <text x="10" y="38" font-size="3" text-anchor="end">STEALTH</text>
+                            <!-- Data Polygon -->
+                            <polygon id="radar-polygon" points="50,50 50,50 50,50 50,50 50,50"
+                                fill="rgba(255, 140, 0, 0.4)" stroke="var(--accent-orange)" stroke-width="1" />
+                            <polygon id="hero-radar-polygon" points="50,50 50,50 50,50 50,50 50,50"
+                                fill="rgba(92, 77, 255, 0.3)" stroke="var(--accent-blue)" stroke-width="1"
+                                class="hidden" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Panel 3: Requirements -->
+                <div class="glass-panel">
+                    <div class="panel-header">
+                        <span>REQUISITOS</span>
+                        <span>OBJ_LIST.cfg</span>
+                    </div>
+                    <div class="panel-content">
+                        <ul class="requirement-list" id="mission-requirements">
+                            <!-- Injected by JS -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-area">
+                <div style="color: #00d2d3; font-size: 0.8rem;">
+                    <span id="deployment-info">AGUARDANDO SELEÇÃO DE EQUIPA...</span>
+                </div>
+                <button class="btn btn-dispatch" id="btn-dispatch" onclick="handleDispatch()"
+                    disabled>DESPACHAR</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="hero-selection-bar">
+        <!-- Hero Slots will be injected here -->
+    </div>
+
+    <!-- OVERLAYS -->
+    <div id="result-overlay" class="overlay">
+        <div id="result-box" class="result-box">
+            <div id="result-status" class="result-title">SUCESSO</div>
+            <div id="result-text" class="result-details">A missão foi concluída com êxito. O herói retornou à base.
+            </div>
+            <button class="btn btn-dispatch" onclick="closeOverlay()">CONFIRMAR</button>
+        </div>
+    </div>
+
+    <div id="day-transition" class="overlay">
+        <div class="day-text" id="day-transition-text">DIA 01</div>
+        <div style="margin-top: 20px; color: #00d2d3;">CARREGANDO PRÓXIMO TURNO...</div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & DATA ---
+        const SKILLS = ['combat', 'intel', 'rescue', 'speed', 'stealth'];
+
+        const HEROES = [
+            {
+                id: 'sonar', name: 'SONAR',
+                img: 'hero_sonar_1772755677031.png',
+                stats: { combat: 2, intel: 5, rescue: 1, speed: 4, stealth: 5 },
+                status: 'RESTING',
+                color: '#5c4dff'
+            },
+            {
+                id: 'flambae', name: 'FLAMBAE',
+                img: 'hero_flambae_1772755690653.png',
+                stats: { combat: 5, intel: 2, rescue: 3, speed: 3, stealth: 1 },
+                status: 'RESTING',
+                color: '#ff4757'
+            },
+            {
+                id: 'malevola', name: 'MALEVOLA',
+                img: 'hero_malevola_1772755705655.png',
+                stats: { combat: 4, intel: 4, rescue: 1, speed: 2, stealth: 4 },
+                status: 'RESTING',
+                color: '#a55eea'
+            },
+            {
+                id: 'golem', name: 'GOLEM',
+                img: 'hero_golem_1772755721586.png',
+                stats: { combat: 5, intel: 1, rescue: 5, speed: 1, stealth: 1 },
+                status: 'RESTING',
+                color: '#20bf6b'
+            }
+        ];
+
+        const MISSION_TEMPLATES = [
+            {
+                title: "ROUBO AO BANCO",
+                type: "ASSALTO ARMADO",
+                audio: "Eles estão no cofre... Atirando em tudo! Precisamos de reforços imediatos antes que eles fujam.",
+                requirements: ["Neutralizar ladrões", "Resgatar reféns", "Impedir fuga"],
+                biases: { combat: 4, intel: 1, rescue: 4, speed: 3, stealth: 1 }
+            },
+            {
+                title: "INVASÃO DE REDE",
+                type: "CYBER ATTACK",
+                audio: "O firewall caiu. Eles estão minerando dados do núcleo central. Se não pararmos agora, a cidade apaga.",
+                requirements: ["Bloquear acesso", "Rastrear origem", "Recuperar chaves"],
+                biases: { combat: 1, intel: 5, rescue: 1, speed: 2, stealth: 4 }
+            },
+            {
+                title: "REFÉNS NO TELHADO",
+                type: "EXTRAÇÃO",
+                audio: "Estamos presos! O prédio está cercado. Não temos para onde ir e o tempo está acabando.",
+                requirements: ["Subida rápida", "Evacuação aérea", "Apoio médico"],
+                biases: { combat: 2, intel: 2, rescue: 5, speed: 4, stealth: 1 }
+            },
+            {
+                title: "CONTRABANDO NO CAIS",
+                type: "INFILTRAÇÃO",
+                audio: "Recebemos uma denúncia. Cargas ilegais estão sendo movidas agora. Precisamos de silêncio.",
+                requirements: ["Passar despercebido", "Marcar carga", "Capturar líder"],
+                biases: { combat: 3, intel: 3, rescue: 1, speed: 2, stealth: 5 }
+            }
+        ];
+
+        // --- STATE ---
+        let state = {
+            day: 1,
+            money: 2500,
+            reputation: 100,
+            activeMissions: [],
+            selectedMissionId: null,
+            selectedHeroId: null,
+            isTransitioning: false
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function initGame() {
+            generateMissionsForDay();
+            renderHerosSlots();
+            updateUI();
+            startClock();
         }
 
-        // --- GAME LOOP ---
-
-        function updateClock() {
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + 
-                            now.getMinutes().toString().padStart(2, '0') + ":" + 
-                            now.getSeconds().toString().padStart(2, '0');
-            document.getElementById('system-time').innerText = timeStr;
+        function generateMissionsForDay() {
+            state.activeMissions = [];
+            const count = 3 + state.day; // More missions each day
+            for (let i = 0; i < count; i++) {
+                const template = MISSION_TEMPLATES[Math.floor(Math.random() * MISSION_TEMPLATES.length)];
+                const mission = {
+                    id: 'm-' + Date.now() + i,
+                    ...template,
+                    stats: randomizeStats(template.biases),
+                    timer: 60 + (Math.random() * 60), // Time to expire
+                    isCompleted: false
+                };
+                state.activeMissions.push(mission);
+            }
         }
 
-        setInterval(() => {
-            updateClock();
-            
-            // Mission expiration and spawning
-            state.missions.forEach(m => {
-                if (m.status === 'pending') {
-                    m.urgency--;
-                    if (m.urgency <= 0) {
-                        m.status = 'failed';
-                        state.reputation -= 10;
-                        addLog(`MISSÃO EXPIRADA: ${m.title}. Reputação reduzida.`);
-                    }
-                }
+        function randomizeStats(biases) {
+            let stats = {};
+            SKILLS.forEach(s => {
+                stats[s] = Math.max(1, Math.min(5, biases[s] + (Math.floor(Math.random() * 3) - 1)));
             });
+            return stats;
+        }
 
-            // Cleanup expired
-            state.missions = state.missions.filter(m => m.status !== 'failed' && m.status !== 'completed');
-            
-            // Random spawn
-            if (state.missions.filter(m => m.status === 'pending').length < 4 && Math.random() < 0.05) {
-                createMission();
+        function updateUI() {
+            document.getElementById('ui-day').innerText = `DIA ${state.day.toString().padStart(2, '0')}`;
+            document.getElementById('ui-rep').innerText = state.reputation;
+            document.getElementById('ui-money').innerText = `$${state.money}`;
+
+            renderMissionTabs();
+            renderSelectedMission();
+            updateDispatchButton();
+        }
+
+        function renderMissionTabs() {
+            const container = document.getElementById('mission-tabs-container');
+            container.innerHTML = '';
+
+            const pending = state.activeMissions.filter(m => !m.isCompleted);
+            document.getElementById('ui-mission-count').innerText = pending.length;
+
+            if (pending.length === 0 && !state.isTransitioning) {
+                container.innerHTML = '<div style="font-size: 0.7rem; opacity: 0.5; padding: 10px;">TODOS OS CHAMADOS ATENDIDOS. AGUARDANDO PRÓXIMO TURNO.</div>';
+                checkDayEnd();
+                return;
             }
 
-            // Hero Recovery
-            state.heroes.forEach(h => {
-                if (h.status === HERO_STATUS.UNAVAILABLE && !h.currentMission) {
-                    if (h.cooldown > 0) {
-                        h.cooldown--;
-                    } else {
-                        h.status = HERO_STATUS.TIRED;
-                        addLog(`HERÓI ${h.name} RETORNOU AO STATUS: CANSADO.`);
+            pending.forEach(m => {
+                const tab = document.createElement('div');
+                tab.className = `mission-tab ${state.selectedMissionId === m.id ? 'active' : ''} ${m.timer < 30 ? 'urgent' : ''}`;
+                tab.innerHTML = `
+                    <div class="m-title">${m.title}</div>
+                    <div class="m-timer">EXPIRA EM: ${Math.floor(m.timer)}s</div>
+                `;
+                tab.onclick = () => {
+                    state.selectedMissionId = m.id;
+                    updateUI();
+                };
+                container.appendChild(tab);
+            });
+        }
+
+        function renderSelectedMission() {
+            const m = state.activeMissions.find(m => m.id === state.selectedMissionId);
+            const audioText = document.getElementById('mission-audio-text');
+            const reqList = document.getElementById('mission-requirements');
+            const typeLabel = document.getElementById('mission-type-label');
+
+            if (!m) {
+                audioText.innerText = "Sinal de rádio inativo. Selecione um chamado...";
+                reqList.innerHTML = '';
+                typeLabel.innerText = "ANÁLISE DE RISCO";
+                updateRadar([0, 0, 0, 0, 0], 'radar-polygon');
+                hideHeroRadar();
+                return;
+            }
+
+            typeLabel.innerText = m.type;
+            audioText.innerText = `"${m.audio}"`;
+
+            reqList.innerHTML = m.requirements.map(r => `<li class="req-item"><span class="req-keyword">${r}</span></li>`).join('');
+
+            const points = SKILLS.map(s => m.stats[s]);
+            updateRadar(points, 'radar-polygon');
+
+            if (state.selectedHeroId) {
+                const hero = HEROES.find(h => h.id === state.selectedHeroId);
+                const heroPoints = SKILLS.map(s => hero.stats[s]);
+                updateRadar(heroPoints, 'hero-radar-polygon');
+                showHeroRadar();
+            } else {
+                hideHeroRadar();
+            }
+        }
+
+        function renderHerosSlots() {
+            const container = document.getElementById('hero-selection-bar');
+            container.innerHTML = '';
+            HEROES.forEach(h => {
+                const slot = document.createElement('div');
+                slot.className = `hero-slot ${state.selectedHeroId === h.id ? 'selected' : ''} ${h.status !== 'RESTING' ? 'busy' : ''}`;
+                slot.innerHTML = `
+                    <div class="hero-status-tag">${h.status}</div>
+                    <img src="${h.img}" class="hero-img">
+                    <div class="hero-name-tag">${h.name}</div>
+                `;
+                slot.onclick = () => {
+                    if (h.status === 'RESTING') {
+                        state.selectedHeroId = h.id;
+                        renderHerosSlots();
+                        renderSelectedMission();
+                        updateDispatchButton();
                     }
-                }
+                };
+                container.appendChild(slot);
+            });
+        }
+
+        // Radar Chart Helper
+        function updateRadar(values, polygonId) {
+            const poly = document.getElementById(polygonId);
+            const centerX = 50;
+            const centerY = 50;
+            const radius = 40;
+
+            const angles = [
+                -Math.PI / 2,
+                -Math.PI / 2 + (2 * Math.PI / 5),
+                -Math.PI / 2 + (4 * Math.PI / 5),
+                -Math.PI / 2 + (6 * Math.PI / 5),
+                -Math.PI / 2 + (8 * Math.PI / 5)
+            ];
+
+            const points = angles.map((angle, i) => {
+                const val = values[i] || 0;
+                const r = (val / 5) * radius;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                return `${x},${y}`;
+            }).join(' ');
+
+            poly.setAttribute('points', points);
+        }
+
+        function showHeroRadar() { document.getElementById('hero-radar-polygon').classList.remove('hidden'); }
+        function hideHeroRadar() { document.getElementById('hero-radar-polygon').classList.add('hidden'); }
+
+        function updateDispatchButton() {
+            const btn = document.getElementById('btn-dispatch');
+            const info = document.getElementById('deployment-info');
+
+            if (state.selectedMissionId && state.selectedHeroId) {
+                btn.disabled = false;
+                const hero = HEROES.find(h => h.id === state.selectedHeroId);
+                info.innerText = `PRONTO PARA DESPACHAR: ${hero.name}`;
+                info.style.color = "var(--accent-orange)";
+            } else {
+                btn.disabled = true;
+                info.innerText = "AGUARDANDO SELEÇÃO DE EQUIPA...";
+                info.style.color = "#00d2d3";
+            }
+        }
+
+        // --- GAMEPLAY ACTIONS ---
+
+        function handleDispatch() {
+            const mission = state.activeMissions.find(m => m.id === state.selectedMissionId);
+            const hero = HEROES.find(h => h.id === state.selectedHeroId);
+
+            if (!mission || !hero) return;
+
+            // Mark hero as busy
+            hero.status = 'BUSY';
+            mission.isCompleted = true;
+
+            // Calculate Success
+            let score = 0;
+            SKILLS.forEach(s => {
+                if (hero.stats[s] >= mission.stats[s]) score += 20;
+                else score += (hero.stats[s] / mission.stats[s]) * 15;
             });
 
-            updateUI();
-        }, 1000);
+            const roll = Math.random() * 100;
+            const isSuccess = roll < score;
 
-        // Initial setup
-        createMission();
-        createMission();
-        updateUI();
+            // Reset selection
+            state.selectedHeroId = null;
+            state.selectedMissionId = null;
+
+            setTimeout(() => {
+                showResult(isSuccess, hero, mission);
+                hero.status = 'RESTING'; // In a real game we'd add a delay
+                renderHerosSlots();
+                updateUI();
+            }, 800);
+        }
+
+        function showResult(success, hero, mission) {
+            const overlay = document.getElementById('result-overlay');
+            const box = document.getElementById('result-box');
+            const title = document.getElementById('result-status');
+            const text = document.getElementById('result-text');
+
+            overlay.style.display = 'flex';
+            box.className = success ? 'result-box success' : 'result-box failure';
+            title.innerText = success ? 'SUCESSO' : 'FALHA';
+
+            if (success) {
+                const reward = 500 + (state.day * 100);
+                state.money += reward;
+                state.reputation += 10;
+                text.innerText = `O herói ${hero.name} resolveu a crise: ${mission.title}.\nObtidom: $${reward} e +10 Fama.`;
+            } else {
+                state.reputation -= 15;
+                text.innerText = `O herói ${hero.name} não conseguiu conter a situação em: ${mission.title}.\nA cidade sofreu danos. -15 Fama.`;
+            }
+        }
+
+        function closeOverlay() {
+            document.getElementById('result-overlay').style.display = 'none';
+        }
+
+        function checkDayEnd() {
+            if (state.isTransitioning) return;
+            state.isTransitioning = true;
+
+            setTimeout(() => {
+                const trans = document.getElementById('day-transition');
+                const text = document.getElementById('day-transition-text');
+                text.innerText = `DIA ${state.day} CONCLUÍDO`;
+                trans.style.display = 'flex';
+
+                setTimeout(() => {
+                    state.day++;
+                    state.isTransitioning = false;
+                    generateMissionsForDay();
+                    trans.style.display = 'none';
+                    updateUI();
+                }, 3000);
+            }, 2000);
+        }
+
+        // --- UTILS ---
+
+        function startClock() {
+            setInterval(() => {
+                // System time
+                const now = new Date();
+                document.getElementById('ui-clock').innerText = now.toTimeString().split(' ')[0];
+
+                // Mission timers
+                let changed = false;
+                state.activeMissions.forEach(m => {
+                    if (!m.isCompleted) {
+                        m.timer -= 0.1;
+                        if (m.timer <= 0) {
+                            m.isCompleted = true;
+                            state.reputation -= 5;
+                            changed = true;
+                        }
+                    }
+                });
+
+                if (changed || Math.floor(now.getMilliseconds() / 100) === 0) {
+                    renderMissionTabs();
+                }
+            }, 100);
+        }
+
+        // Initialize
+        initGame();
 
     </script>
 </body>
+
 </html>
