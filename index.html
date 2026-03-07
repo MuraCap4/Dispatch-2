@@ -89,6 +89,7 @@
             border: 1px solid rgba(0, 210, 211, 0.3);
             border-radius: 4px;
             overflow-y: auto;
+            max-height: calc(100vh - 180px); /* Keep it contained */
             color: #00d2d3;
             padding: 10px;
         }
@@ -302,6 +303,33 @@
             font-weight: bold;
         }
 
+        .hero-slot.injured {
+            border: 1px solid var(--accent-red);
+        }
+
+        .hero-slot.injured .hero-status-tag {
+            background: var(--accent-red);
+        }
+
+        .hero-slot.busy, .hero-slot.unavailable {
+            cursor: not-allowed;
+        }
+
+        .hero-slot.unavailable .hero-status-tag {
+            background: #333;
+        }
+
+        .cooldown-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            height: 0%;
+            transition: height 0.1s linear;
+            pointer-events: none;
+        }
+
         /* DISPATCH BUTTON BOX */
         .action-area {
             display: flex;
@@ -421,9 +449,76 @@
         }
 
         /* RESPONSIVE & UTILS */
-        .hidden {
-            display: none !important;
+        /* UPGRADE OVERLAY */
+        #upgrade-overlay {
+            background: rgba(13, 18, 18, 0.95);
+            display: none;
         }
+
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            width: 90%;
+            max-width: 1000px;
+            margin-top: 20px;
+        }
+
+        .upgrade-card {
+            background: rgba(240, 230, 210, 0.1);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            text-align: left;
+        }
+
+        .upgrade-card h3 { color: #00d2d3; margin-bottom: 10px; }
+        .upgrade-stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.8rem; color: #ccc; }
+
+        .btn-upgrade {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background: var(--accent-green);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn-upgrade:disabled { background: #444; cursor: not-allowed; }
+
+        /* EVENT NOTIFICATION */
+        #event-banner {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-orange);
+            color: black;
+            padding: 10px 40px;
+            font-weight: 900;
+            z-index: 1500;
+            clip-path: polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%);
+            display: none;
+            animation: slideDown 0.5s forwards;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        @keyframes slideDown {
+            from { top: -50px; }
+            to { top: 60px; }
+        }
+
+        .active-event-tag {
+            color: var(--accent-orange);
+            font-size: 0.7rem;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .rare-mission { border-left: 3px solid #ff00ff !important; color: #ff00ff !important; }
+        
+        .hidden { display: none !important; }
     </style>
 </head>
 
@@ -432,12 +527,15 @@
     <header>
         <div id="ui-day">DIA 01</div>
         <div id="ui-clock">21:07:13</div>
-        <div style="display: flex;">
+        <div style="display: flex; align-items: center;">
+            <button class="btn" style="padding: 5px 15px; margin-right: 20px; background: var(--accent-green); font-size: 0.7rem;" onclick="openUpgradeMenu()">UPGRADES</button>
             <div class="stats-item">FAMA: <span id="ui-rep">100</span></div>
             <div class="stats-item">ORÇAMENTO: <span id="ui-money">$2500</span></div>
-            <div class="stats-item">STATUS: ESTÁVEL</div>
+            <div class="stats-item">STATUS: <span id="ui-event-status" style="color: var(--accent-green)">ESTÁVEL</span></div>
         </div>
     </header>
+
+    <div id="event-banner">EVENTO: TRÁFEGO CAÓTICO (+5s Cooldown)</div>
 
     <main>
         <aside id="mission-sidebar">
@@ -539,8 +637,17 @@
         </div>
     </div>
 
+    <div id="upgrade-overlay" class="overlay">
+        <h2 class="result-title">CENTRO DE TREINAMENTO</h2>
+        <div class="upgrade-grid" id="upgrade-grid">
+            <!-- Injected by JS -->
+        </div>
+        <button class="btn btn-dispatch" style="margin-top: 30px;" onclick="closeUpgradeMenu()">VOLTAR AO CONTROLE</button>
+    </div>
+
     <div id="day-transition" class="overlay">
         <div class="day-text" id="day-transition-text">DIA 01</div>
+        <div id="day-event-text" style="margin-top: 10px; color: var(--accent-orange); font-weight: bold;"></div>
         <div style="margin-top: 20px; color: #00d2d3;">CARREGANDO PRÓXIMO TURNO...</div>
     </div>
 
@@ -551,63 +658,108 @@
         const HEROES = [
             {
                 id: 'sonar', name: 'SONAR',
-                img: 'file:///C:/Users/24025726/.gemini/antigravity/brain/831d2967-f46b-40fd-9ace-a0c3259728bc/hero_sonar_1772755677031.png',
+                img: 'assets/sonar.png',
                 stats: { combat: 2, intel: 5, rescue: 1, speed: 4, stealth: 5 },
-                status: 'RESTING',
-                color: '#5c4dff'
+                currentStats: { combat: 2, intel: 5, rescue: 1, speed: 4, stealth: 5 },
+                status: 'READY',
+                color: '#5c4dff',
+                fails: 0,
+                cooldown: 0,
+                baseCooldown: 15
             },
             {
                 id: 'flambae', name: 'FLAMBAE',
-                img: 'file:///C:/Users/24025726/.gemini/antigravity/brain/831d2967-f46b-40fd-9ace-a0c3259728bc/hero_flambae_1772755690653.png',
+                img: 'assets/flambae.png',
                 stats: { combat: 5, intel: 2, rescue: 3, speed: 3, stealth: 1 },
-                status: 'RESTING',
-                color: '#ff4757'
+                currentStats: { combat: 5, intel: 2, rescue: 3, speed: 3, stealth: 1 },
+                status: 'READY',
+                color: '#ff4757',
+                fails: 0,
+                cooldown: 0,
+                baseCooldown: 15
             },
             {
                 id: 'malevola', name: 'MALEVOLA',
-                img: 'file:///C:/Users/24025726/.gemini/antigravity/brain/831d2967-f46b-40fd-9ace-a0c3259728bc/hero_malevola_1772755705655.png',
+                img: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&h=400&fit=crop&q=80',
                 stats: { combat: 4, intel: 4, rescue: 1, speed: 2, stealth: 4 },
-                status: 'RESTING',
-                color: '#a55eea'
+                currentStats: { combat: 4, intel: 4, rescue: 1, speed: 2, stealth: 4 },
+                status: 'READY',
+                color: '#a55eea',
+                fails: 0,
+                cooldown: 0,
+                baseCooldown: 15
             },
             {
                 id: 'golem', name: 'GOLEM',
-                img: 'file:///C:/Users/24025726/.gemini/antigravity/brain/831d2967-f46b-40fd-9ace-a0c3259728bc/hero_golem_1772755721586.png',
+                img: 'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=400&h=400&fit=crop&q=80',
                 stats: { combat: 5, intel: 1, rescue: 5, speed: 1, stealth: 1 },
-                status: 'RESTING',
-                color: '#20bf6b'
+                currentStats: { combat: 5, intel: 1, rescue: 5, speed: 1, stealth: 1 },
+                status: 'READY',
+                color: '#20bf6b',
+                fails: 0,
+                cooldown: 0,
+                baseCooldown: 15
+            },
+            {
+                id: 'aura', name: 'AURA',
+                img: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=400&fit=crop&q=80',
+                stats: { combat: 1, intel: 4, rescue: 5, speed: 2, stealth: 3 },
+                currentStats: { combat: 1, intel: 4, rescue: 5, speed: 2, stealth: 3 },
+                status: 'READY',
+                color: '#7ed6df',
+                fails: 0,
+                cooldown: 0,
+                baseCooldown: 15
             }
         ];
-
         const MISSION_TEMPLATES = [
             {
                 title: "ROUBO AO BANCO",
                 type: "ASSALTO ARMADO",
                 audio: "Eles estão no cofre... Atirando em tudo! Precisamos de reforços imediatos antes que eles fujam.",
                 requirements: ["Neutralizar ladrões", "Resgatar reféns", "Impedir fuga"],
-                biases: { combat: 4, intel: 1, rescue: 4, speed: 3, stealth: 1 }
+                biases: { combat: 4, intel: 1, rescue: 4, speed: 3, stealth: 1 },
+                rare: false
             },
             {
                 title: "INVASÃO DE REDE",
                 type: "CYBER ATTACK",
                 audio: "O firewall caiu. Eles estão minerando dados do núcleo central. Se não pararmos agora, a cidade apaga.",
                 requirements: ["Bloquear acesso", "Rastrear origem", "Recuperar chaves"],
-                biases: { combat: 1, intel: 5, rescue: 1, speed: 2, stealth: 4 }
+                biases: { combat: 1, intel: 5, rescue: 1, speed: 2, stealth: 4 },
+                rare: false
             },
             {
                 title: "REFÉNS NO TELHADO",
                 type: "EXTRAÇÃO",
                 audio: "Estamos presos! O prédio está cercado. Não temos para onde ir e o tempo está acabando.",
                 requirements: ["Subida rápida", "Evacuação aérea", "Apoio médico"],
-                biases: { combat: 2, intel: 2, rescue: 5, speed: 4, stealth: 1 }
+                biases: { combat: 2, intel: 2, rescue: 5, speed: 4, stealth: 1 },
+                rare: false
             },
             {
                 title: "CONTRABANDO NO CAIS",
                 type: "INFILTRAÇÃO",
                 audio: "Recebemos uma denúncia. Cargas ilegais estão sendo movidas agora. Precisamos de silêncio.",
                 requirements: ["Passar despercebido", "Marcar carga", "Capturar líder"],
-                biases: { combat: 3, intel: 3, rescue: 1, speed: 2, stealth: 5 }
+                biases: { combat: 3, intel: 3, rescue: 1, speed: 2, stealth: 5 },
+                rare: false
+            },
+            {
+                title: "AMEAÇA OMEGA",
+                type: "CRISE ABSOLUTA",
+                audio: "O sinal está falhando... é um monstro gigante! Nenhuma arma convencional funciona. SOCORRO!",
+                requirements: ["Dano massivo", "Resgate em massa", "Sacrifício final"],
+                biases: { combat: 5, intel: 5, rescue: 5, speed: 5, stealth: 5 },
+                rare: true
             }
+        ];
+
+        const EVENTS = [
+            { id: 'none', label: 'ESTÁVEL', desc: 'Nenhum evento ativo.', moveCd: 0, failRep: 5, moneyMult: 1 },
+            { id: 'storm', label: 'TEMPESTADE', desc: 'Tráfego lento. +5s de Cooldown em todos os heróis.', moveCd: 5, failRep: 5, moneyMult: 1 },
+            { id: 'panic', label: 'PÂNICO GERAL', desc: 'Cidade instável. Dobro de perda de Fama em missões expiradas.', moveCd: 0, failRep: 10, moneyMult: 1 },
+            { id: 'funding', label: 'INVESTIMENTO', desc: 'Economia aquecida. +50% de lucro em todas as missões.', moveCd: 0, failRep: 5, moneyMult: 1.5 }
         ];
 
         // --- STATE ---
@@ -617,8 +769,9 @@
             reputation: 100,
             activeMissions: [],
             selectedMissionId: null,
-            selectedHeroId: null,
-            isTransitioning: false
+            selectedHeroIds: [], // Changed to array
+            isTransitioning: false,
+            currentEvent: EVENTS[0]
         };
 
         // --- CORE FUNCTIONS ---
@@ -632,24 +785,37 @@
 
         function generateMissionsForDay() {
             state.activeMissions = [];
-            const count = 3 + state.day; // More missions each day
+            // Smoother scaling: starts at 4, increases more slowly
+            const count = Math.min(3 + Math.floor(state.day / 1.5), 7); 
             for (let i = 0; i < count; i++) {
                 const template = MISSION_TEMPLATES[Math.floor(Math.random() * MISSION_TEMPLATES.length)];
+                
+                // Chance of a rare mission (15%)
+                const isRare = Math.random() < 0.15 || template.rare;
+                
                 const mission = {
                     id: 'm-' + Date.now() + i,
                     ...template,
-                    stats: randomizeStats(template.biases),
-                    timer: 60 + (Math.random() * 60), // Time to expire
-                    isCompleted: false
+                    stats: randomizeStats(template.biases, isRare),
+                    timer: isRare ? (15 + Math.random() * 15) : (25 + Math.random() * 20),
+                    isCompleted: false,
+                    isRare: isRare
                 };
                 state.activeMissions.push(mission);
             }
         }
 
-        function randomizeStats(biases) {
+        function randomizeStats(biases, isRare) {
             let stats = {};
             SKILLS.forEach(s => {
-                stats[s] = Math.max(1, Math.min(5, biases[s] + (Math.floor(Math.random() * 3) - 1)));
+                let val = biases[s] + (Math.floor(Math.random() * 3) - 1);
+                // Non-rare missions should stay within a 1-5 range and focus on biases
+                // If it's not a bias skill, capped lower to allow solo specialists
+                if (!isRare && biases[s] <= 2) {
+                    val = Math.min(2, val);
+                }
+                if (isRare) val += 1; 
+                stats[s] = Math.max(1, Math.min(isRare ? 8 : 5, val)); // Rare can go up to 8
             });
             return stats;
         }
@@ -679,16 +845,46 @@
 
             pending.forEach(m => {
                 const tab = document.createElement('div');
-                tab.className = `mission-tab ${state.selectedMissionId === m.id ? 'active' : ''} ${m.timer < 30 ? 'urgent' : ''}`;
+                tab.id = `mission-tab-${m.id}`;
+                tab.className = `mission-tab ${state.selectedMissionId === m.id ? 'active' : ''} ${m.isRare ? 'rare-mission' : ''}`;
                 tab.innerHTML = `
-                    <div class="m-title">${m.title}</div>
-                    <div class="m-timer">EXPIRA EM: ${Math.floor(m.timer)}s</div>
+                    <div class="m-title">${m.isRare ? '★ ' : ''}${m.title}</div>
+                    <div class="m-timer" id="mission-timer-${m.id}">EXPIRA EM: ${Math.floor(m.timer)}s</div>
                 `;
                 tab.onclick = () => {
                     state.selectedMissionId = m.id;
-                    updateUI();
+                    // Prune hero selection if moving from Rare to Normal mission
+                    if (!m.isRare && state.selectedHeroIds.length > 1) {
+                        state.selectedHeroIds = [state.selectedHeroIds[0]];
+                    }
+                    updateMissionsUI();
+                    renderSelectedMission();
+                    updateDispatchButton();
+                    renderHerosSlots(); // Refresh to show correct selection states
                 };
                 container.appendChild(tab);
+            });
+        }
+
+        function updateMissionsUI() {
+            state.activeMissions.forEach(m => {
+                if (m.isCompleted) return;
+                
+                const tab = document.getElementById(`mission-tab-${m.id}`);
+                const timer = document.getElementById(`mission-timer-${m.id}`);
+                
+                if (tab) {
+                    // Update classes
+                    if (state.selectedMissionId === m.id) tab.classList.add('active');
+                    else tab.classList.remove('active');
+                    
+                    if (m.timer < 30) tab.classList.add('urgent');
+                    else tab.classList.remove('urgent');
+                }
+                
+                if (timer) {
+                    timer.innerText = `EXPIRA EM: ${Math.floor(m.timer)}s`;
+                }
             });
         }
 
@@ -712,13 +908,23 @@
 
             reqList.innerHTML = m.requirements.map(r => `<li class="req-item"><span class="req-keyword">${r}</span></li>`).join('');
 
-            const points = SKILLS.map(s => m.stats[s]);
-            updateRadar(points, 'radar-polygon');
+            const isDual = state.selectedHeroIds.length > 1;
+            const maxRadarScale = isDual ? 10 : 5;
 
-            if (state.selectedHeroId) {
-                const hero = HEROES.find(h => h.id === state.selectedHeroId);
-                const heroPoints = SKILLS.map(s => hero.stats[s]);
-                updateRadar(heroPoints, 'hero-radar-polygon');
+            // Update Mission Radar (Black background polygon)
+            const missionPoints = SKILLS.map(s => m.stats[s]);
+            updateRadar(missionPoints, 'radar-polygon', maxRadarScale);
+
+            if (state.selectedHeroIds.length > 0) {
+                const combinedStats = {};
+                SKILLS.forEach(s => {
+                    combinedStats[s] = state.selectedHeroIds.reduce((sum, id) => {
+                        const h = HEROES.find(hero => hero.id === id);
+                        return sum + (h ? h.currentStats[s] : 0);
+                    }, 0);
+                });
+                const heroPoints = SKILLS.map(s => combinedStats[s]);
+                updateRadar(heroPoints, 'hero-radar-polygon', maxRadarScale);
                 showHeroRadar();
             } else {
                 hideHeroRadar();
@@ -730,15 +936,34 @@
             container.innerHTML = '';
             HEROES.forEach(h => {
                 const slot = document.createElement('div');
-                slot.className = `hero-slot ${state.selectedHeroId === h.id ? 'selected' : ''} ${h.status !== 'RESTING' ? 'busy' : ''}`;
+                const isInjured = h.fails === 1;
+                const isUnavailable = h.fails >= 2;
+                
+                slot.id = `hero-slot-${h.id}`;
+                slot.className = `hero-slot ${state.selectedHeroId === h.id ? 'selected' : ''} ${h.status !== 'READY' ? 'busy' : ''} ${isInjured ? 'injured' : ''} ${isUnavailable ? 'unavailable' : ''}`;
+                
                 slot.innerHTML = `
-                    <div class="hero-status-tag">${h.status}</div>
-                    <img src="${h.img}" class="hero-img">
+                    <div class="hero-status-tag" id="status-tag-${h.id}">READY</div>
+                    <img src="${h.img}" class="hero-img" onerror="this.src='https://via.placeholder.com/400?text=${h.name}'">
+                    <div class="cooldown-overlay" id="cooldown-overlay-${h.id}" style="height: 0%"></div>
                     <div class="hero-name-tag">${h.name}</div>
                 `;
                 slot.onclick = () => {
-                    if (h.status === 'RESTING') {
-                        state.selectedHeroId = h.id;
+                    if (h.status === 'READY') {
+                        const m = state.activeMissions.find(m => m.id === state.selectedMissionId);
+                        const maxAllowed = (m && m.isRare) ? 2 : 1;
+                        
+                        const index = state.selectedHeroIds.indexOf(h.id);
+                        if (index > -1) {
+                            state.selectedHeroIds.splice(index, 1);
+                        } else {
+                            if (state.selectedHeroIds.length < maxAllowed) {
+                                state.selectedHeroIds.push(h.id);
+                            } else if (maxAllowed === 1) {
+                                // For normal missions, toggle: replace the old selection
+                                state.selectedHeroIds = [h.id];
+                            }
+                        }
                         renderHerosSlots();
                         renderSelectedMission();
                         updateDispatchButton();
@@ -746,10 +971,42 @@
                 };
                 container.appendChild(slot);
             });
+            updateHeroStatusesUI(); // Initial status update
+        }
+
+        function updateHeroStatusesUI() {
+            HEROES.forEach(h => {
+                const isInjured = h.fails === 1;
+                const isUnavailable = h.fails >= 2;
+                const slot = document.getElementById(`hero-slot-${h.id}`);
+                const tag = document.getElementById(`status-tag-${h.id}`);
+                const overlay = document.getElementById(`cooldown-overlay-${h.id}`);
+                
+                if (!slot || !tag || !overlay) return;
+
+                // Update overlay
+                const cdPercent = h.cooldown > 0 ? (h.cooldown / (isInjured ? h.baseCooldown * 2 : h.baseCooldown)) * 100 : 0;
+                overlay.style.height = `${cdPercent}%`;
+
+                // Update text and classes
+                let statusText = h.status;
+                if (isUnavailable) statusText = 'UNAVAILABLE';
+                else if (h.cooldown > 0) statusText = `RESTING (${Math.ceil(h.cooldown)}s)`;
+                else if (isInjured) statusText = 'INJURED';
+                else if (h.status === 'READY') statusText = 'READY';
+
+                tag.innerText = statusText;
+                
+                if (h.status !== 'READY' || isUnavailable) slot.classList.add('busy');
+                else slot.classList.remove('busy');
+
+                if (state.selectedHeroIds.includes(h.id)) slot.classList.add('selected');
+                else slot.classList.remove('selected');
+            });
         }
 
         // Radar Chart Helper
-        function updateRadar(values, polygonId) {
+        function updateRadar(values, polygonId, maxVal = 5) {
             const poly = document.getElementById(polygonId);
             const centerX = 50;
             const centerY = 50;
@@ -765,7 +1022,7 @@
 
             const points = angles.map((angle, i) => {
                 const val = values[i] || 0;
-                const r = (val / 5) * radius;
+                const r = (val / maxVal) * radius;
                 const x = centerX + r * Math.cos(angle);
                 const y = centerY + r * Math.sin(angle);
                 return `${x},${y}`;
@@ -781,14 +1038,14 @@
             const btn = document.getElementById('btn-dispatch');
             const info = document.getElementById('deployment-info');
 
-            if (state.selectedMissionId && state.selectedHeroId) {
+            if (state.selectedMissionId && state.selectedHeroIds.length > 0) {
                 btn.disabled = false;
-                const hero = HEROES.find(h => h.id === state.selectedHeroId);
-                info.innerText = `PRONTO PARA DESPACHAR: ${hero.name}`;
+                const names = state.selectedHeroIds.map(id => HEROES.find(h => h.id === id).name).join(' & ');
+                info.innerText = `REFORÇO PRONTO: ${names}`;
                 info.style.color = "var(--accent-orange)";
             } else {
                 btn.disabled = true;
-                info.innerText = "AGUARDANDO SELEÇÃO DE EQUIPA...";
+                info.innerText = "ESCOLHA 1 OU 2 HERÓIS PARA A MISSÃO...";
                 info.style.color = "#00d2d3";
             }
         }
@@ -797,54 +1054,75 @@
 
         function handleDispatch() {
             const mission = state.activeMissions.find(m => m.id === state.selectedMissionId);
-            const hero = HEROES.find(h => h.id === state.selectedHeroId);
+            const selectedHeroes = state.selectedHeroIds.map(id => HEROES.find(h => h.id === id));
 
-            if (!mission || !hero) return;
+            if (!mission || selectedHeroes.length === 0) return;
 
-            // Mark hero as busy
-            hero.status = 'BUSY';
+            // Mark heroes as busy
+            selectedHeroes.forEach(h => h.status = 'DEPLOYED');
             mission.isCompleted = true;
 
-            // Calculate Success
-            let score = 0;
+            // Calculate Combined Success
+            let totalScore = 0;
             SKILLS.forEach(s => {
-                if (hero.stats[s] >= mission.stats[s]) score += 20;
-                else score += (hero.stats[s] / mission.stats[s]) * 15;
+                const combinedVal = selectedHeroes.reduce((sum, h) => sum + h.currentStats[s], 0);
+                if (combinedVal >= mission.stats[s]) totalScore += 20;
+                else totalScore += (combinedVal / mission.stats[s]) * 15;
             });
 
             const roll = Math.random() * 100;
-            const isSuccess = roll < score;
+            const isSuccess = roll < totalScore;
 
             // Reset selection
-            state.selectedHeroId = null;
+            state.selectedHeroIds = [];
             state.selectedMissionId = null;
 
             setTimeout(() => {
-                showResult(isSuccess, hero, mission);
-                hero.status = 'RESTING'; // In a real game we'd add a delay
+                showResult(isSuccess, selectedHeroes, mission);
+                
+                selectedHeroes.forEach(hero => {
+                    if (isSuccess) {
+                        hero.status = 'RESTING';
+                        hero.cooldown = hero.baseCooldown + state.currentEvent.moveCd;
+                    } else {
+                        hero.fails++;
+                        if (hero.fails === 1) {
+                            SKILLS.forEach(s => {
+                                hero.currentStats[s] = Math.max(1, hero.currentStats[s] - 1);
+                            });
+                            hero.status = 'RESTING';
+                            hero.cooldown = (hero.baseCooldown + state.currentEvent.moveCd) * 2; 
+                        } else {
+                            hero.status = 'UNAVAILABLE';
+                            hero.cooldown = 0;
+                        }
+                    }
+                });
+                
                 renderHerosSlots();
                 updateUI();
             }, 800);
         }
 
-        function showResult(success, hero, mission) {
+        function showResult(success, selectedHeroes, mission) {
             const overlay = document.getElementById('result-overlay');
             const box = document.getElementById('result-box');
             const title = document.getElementById('result-status');
             const text = document.getElementById('result-text');
+            const names = selectedHeroes.map(h => h.name).join(' & ');
 
             overlay.style.display = 'flex';
             box.className = success ? 'result-box success' : 'result-box failure';
             title.innerText = success ? 'SUCESSO' : 'FALHA';
 
             if (success) {
-                const reward = 500 + (state.day * 100);
+                const reward = Math.floor((500 + (state.day * 100)) * state.currentEvent.moneyMult);
                 state.money += reward;
-                state.reputation += 10;
-                text.innerText = `O herói ${hero.name} resolveu a crise: ${mission.title}.\nObtidom: $${reward} e +10 Fama.`;
+                state.reputation += 12; // Bonus for teamwork
+                text.innerText = `A equipe (${names}) resolveu a crise: ${mission.title}.\nObtido: $${reward} e +12 Fama.`;
             } else {
                 state.reputation -= 15;
-                text.innerText = `O herói ${hero.name} não conseguiu conter a situação em: ${mission.title}.\nA cidade sofreu danos. -15 Fama.`;
+                text.innerText = `A equipe (${names}) falhou em conter: ${mission.title}.\nA cidade sofreu danos graves. -15 Fama.`;
             }
         }
 
@@ -859,15 +1137,36 @@
             setTimeout(() => {
                 const trans = document.getElementById('day-transition');
                 const text = document.getElementById('day-transition-text');
+                const evText = document.getElementById('day-event-text');
+                
                 text.innerText = `DIA ${state.day} CONCLUÍDO`;
+                
+                // Roll for next day event
+                const nextEvent = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+                evText.innerText = nextEvent.id === 'none' ? "EQUIPE RECUPERADA PARA O NOVO TURNO" : `ALERTA AMBIENTAL: ${nextEvent.label}`;
+                
                 trans.style.display = 'flex';
 
                 setTimeout(() => {
                     state.day++;
                     state.isTransitioning = false;
+                    
+                    // HEALING / RECOVERY SYSTEM
+                    HEROES.forEach(h => {
+                        h.status = 'READY';
+                        h.fails = 0;
+                        h.cooldown = 0;
+                        h.dailyUpgrades = 0; // Reset training limit
+                        SKILLS.forEach(s => {
+                            h.currentStats[s] = h.stats[s];
+                        });
+                    });
+
                     generateMissionsForDay();
+                    triggerEvent(nextEvent);
                     trans.style.display = 'none';
                     updateUI();
+                    renderHerosSlots(); // Refresh hero visual state
                 }, 3000);
             }, 2000);
         }
@@ -876,27 +1175,130 @@
 
         function startClock() {
             setInterval(() => {
-                // System time
                 const now = new Date();
                 document.getElementById('ui-clock').innerText = now.toTimeString().split(' ')[0];
 
+                let structuralChange = false;
+                let visualChange = false;
+
                 // Mission timers
-                let changed = false;
                 state.activeMissions.forEach(m => {
                     if (!m.isCompleted) {
                         m.timer -= 0.1;
+                        visualChange = true;
                         if (m.timer <= 0) {
+                            m.timer = 0; // Lock at zero
                             m.isCompleted = true;
-                            state.reputation -= 5;
-                            changed = true;
+                            state.reputation -= state.currentEvent.failRep;
+                            structuralChange = true;
                         }
                     }
                 });
 
-                if (changed || Math.floor(now.getMilliseconds() / 100) === 0) {
+                // Hero Cooldowns
+                HEROES.forEach(h => {
+                    if (h.cooldown > 0) {
+                        h.cooldown -= 0.1;
+                        visualChange = true;
+                        
+                        if (state.selectedHeroIds.includes(h.id) && h.status !== 'READY') {
+                            state.selectedHeroIds = state.selectedHeroIds.filter(id => id !== h.id);
+                            renderHerosSlots();
+                            renderSelectedMission();
+                        }
+
+                        if (h.cooldown <= 0) {
+                            h.cooldown = 0;
+                            if (h.status === 'RESTING') h.status = 'READY';
+                        }
+                    }
+                });
+
+                // Periodic UI update
+                if (structuralChange) {
+                    // If the expired/completed mission was selected, deselect it
+                    const stillActive = state.activeMissions.find(m => m.id === state.selectedMissionId && !m.isCompleted);
+                    if (!stillActive) {
+                        state.selectedMissionId = null;
+                        renderSelectedMission();
+                    }
                     renderMissionTabs();
                 }
+
+                if (structuralChange || visualChange || Math.floor(now.getMilliseconds() / 100) === 0) {
+                    updateMissionsUI();
+                    updateHeroStatusesUI();
+                    updateDispatchButton();
+                    
+                    // REAL-TIME STATS UPDATE
+                    document.getElementById('ui-rep').innerText = state.reputation;
+                    document.getElementById('ui-money').innerText = `$${state.money}`;
+                    
+                    const evSt = document.getElementById('ui-event-status');
+                    evSt.innerText = state.currentEvent.label;
+                    evSt.style.color = state.currentEvent.id === 'none' ? 'var(--accent-green)' : 'var(--accent-orange)';
+                }
             }, 100);
+        }
+
+        // --- NEW SYSTEMS: EVENTS & UPGRADES ---
+
+        function triggerEvent(event) {
+            state.currentEvent = event;
+            const banner = document.getElementById('event-banner');
+            if (event.id !== 'none') {
+                banner.innerText = `EVENTO: ${event.label} - ${event.desc}`;
+                banner.style.display = 'block';
+                setTimeout(() => { banner.style.display = 'none'; }, 5000);
+            }
+        }
+
+        function openUpgradeMenu() {
+            const grid = document.getElementById('upgrade-grid');
+            grid.innerHTML = '';
+            
+            HEROES.forEach(h => {
+                const trainCount = h.dailyUpgrades || 0;
+                const canTrain = state.money >= 2000 && trainCount < 1 && h.fails < 2;
+                
+                const card = document.createElement('div');
+                card.className = 'upgrade-card';
+                card.innerHTML = `
+                    <h3>${h.name}</h3>
+                    <div class="upgrade-stat-row"><span>COMBATE</span> <span>${h.stats.combat} / 5</span></div>
+                    <div class="upgrade-stat-row"><span>INTEL</span> <span>${h.stats.intel} / 5</span></div>
+                    <div class="upgrade-stat-row"><span>RESGATE</span> <span>${h.stats.rescue} / 5</span></div>
+                    <div style="font-size: 0.6rem; color: #888; margin-top: 5px;">TREINOS HOJE: ${trainCount}/1</div>
+                    <button class="btn-upgrade" ${!canTrain ? 'disabled' : ''} onclick="buyUpgrade('${h.id}')">
+                        ${trainCount >= 1 ? 'ESGOTADO' : 'TREINAR ($2000)'}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+            document.getElementById('upgrade-overlay').style.display = 'flex';
+        }
+
+        function closeUpgradeMenu() {
+            document.getElementById('upgrade-overlay').style.display = 'none';
+        }
+
+        function buyUpgrade(heroId) {
+            if (state.money < 2000) return;
+            const h = HEROES.find(h => h.id === heroId);
+            if (h.dailyUpgrades >= 1) return;
+            
+            state.money -= 2000;
+            h.dailyUpgrades = (h.dailyUpgrades || 0) + 1;
+
+            const upgradable = SKILLS.filter(s => h.stats[s] < 5);
+            if (upgradable.length > 0) {
+                const stat = upgradable[Math.floor(Math.random() * upgradable.length)];
+                h.stats[stat]++;
+                h.currentStats[stat]++;
+            }
+            
+            updateUI();
+            openUpgradeMenu();
         }
 
         // Initialize
