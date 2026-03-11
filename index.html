@@ -278,6 +278,7 @@
             width: 100%;
             height: 100px;
             object-fit: cover;
+            object-position: top;
             background: #000;
         }
 
@@ -680,7 +681,7 @@
             },
             {
                 id: 'malevola', name: 'MALEVOLA',
-                img: 'https://images.unsplash.com/photo-1635805737707-575885ab0820?w=400&h=400&fit=crop&q=80',
+                img: 'assets/malevola.png',
                 stats: { combat: 4, intel: 4, rescue: 1, speed: 2, stealth: 4 },
                 currentStats: { combat: 4, intel: 4, rescue: 1, speed: 2, stealth: 4 },
                 status: 'READY',
@@ -691,7 +692,7 @@
             },
             {
                 id: 'golem', name: 'GOLEM',
-                img: 'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=400&h=400&fit=crop&q=80',
+                img: 'assets/golem.png',
                 stats: { combat: 5, intel: 1, rescue: 5, speed: 1, stealth: 1 },
                 currentStats: { combat: 5, intel: 1, rescue: 5, speed: 1, stealth: 1 },
                 status: 'READY',
@@ -702,7 +703,7 @@
             },
             {
                 id: 'aura', name: 'AURA',
-                img: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&h=400&fit=crop&q=80',
+                img: 'assets/aura.png',
                 stats: { combat: 1, intel: 4, rescue: 5, speed: 2, stealth: 3 },
                 currentStats: { combat: 1, intel: 4, rescue: 5, speed: 2, stealth: 3 },
                 status: 'READY',
@@ -1143,32 +1144,40 @@
                 
                 // Roll for next day event
                 const nextEvent = EVENTS[Math.floor(Math.random() * EVENTS.length)];
-                evText.innerText = nextEvent.id === 'none' ? "EQUIPE RECUPERADA PARA O NOVO TURNO" : `ALERTA AMBIENTAL: ${nextEvent.label}`;
+                state.nextDayEvent = nextEvent; // Store it for later
+                
+                evText.innerText = "PREPARE SUA EQUIPE PARA O PRÓXIMO TURNO";
                 
                 trans.style.display = 'flex';
 
                 setTimeout(() => {
-                    state.day++;
-                    state.isTransitioning = false;
-                    
-                    // HEALING / RECOVERY SYSTEM
-                    HEROES.forEach(h => {
-                        h.status = 'READY';
-                        h.fails = 0;
-                        h.cooldown = 0;
-                        h.dailyUpgrades = 0; // Reset training limit
-                        SKILLS.forEach(s => {
-                            h.currentStats[s] = h.stats[s];
-                        });
-                    });
-
-                    generateMissionsForDay();
-                    triggerEvent(nextEvent);
                     trans.style.display = 'none';
-                    updateUI();
-                    renderHerosSlots(); // Refresh hero visual state
-                }, 3000);
-            }, 2000);
+                    openUpgradeMenu(); // Open upgrades before starting new day
+                }, 2500);
+            }, 1000);
+        }
+
+        function startNextDay() {
+            const nextEvent = state.nextDayEvent || EVENTS[0];
+            
+            state.day++;
+            state.isTransitioning = false;
+            
+            // HEALING / RECOVERY SYSTEM
+            HEROES.forEach(h => {
+                h.status = 'READY';
+                h.fails = 0;
+                h.cooldown = 0;
+                h.dailyUpgrades = 0; // Reset training limit
+                SKILLS.forEach(s => {
+                    h.currentStats[s] = h.stats[s];
+                });
+            });
+
+            generateMissionsForDay();
+            triggerEvent(nextEvent);
+            updateUI();
+            renderHerosSlots();
         }
 
         // --- UTILS ---
@@ -1280,6 +1289,9 @@
 
         function closeUpgradeMenu() {
             document.getElementById('upgrade-overlay').style.display = 'none';
+            if (state.isTransitioning) {
+                startNextDay();
+            }
         }
 
         function buyUpgrade(heroId) {
